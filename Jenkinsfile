@@ -15,18 +15,29 @@ spec:
       command:
         - cat
       tty: true
+    - name: docker-daemon
+      image: docker:dind
+      args:
+        - --insecure-registry=host.minikube.internal:4000
+      env:
+        - name: DOCKER_TLS_CERTDIR
+          value: ""
+      securityContext:
+        privileged: true
+      volumeMounts:
+        - name: docker-storage
+          mountPath: /var/lib/docker
     - name: docker
       image: docker:cli
       command:
         - cat
       tty: true
-      volumeMounts:
-        - mountPath: /var/run/docker.sock
-          name: docker-sock
+      env:
+        - name: DOCKER_HOST
+          value: tcp://localhost:2375
   volumes:
-    - name: docker-sock
-      hostPath:
-        path: /var/run/docker.sock
+    - name: docker-storage
+      emptyDir: {}
 """
         }
     }
@@ -49,9 +60,19 @@ spec:
         stage('Build image') {
             steps {
                 container('docker') {
-                    sh 'docker version'
-                    sh 'docker build -t localhost:4000/pythontest:latest .'
-                    sh 'docker push localhost:4000/pythontest:latest'
+                    sh '''
+                        for attempt in $(seq 1 30); do
+                            if docker info >/dev/null 2>&1; then
+                                docker version
+                                exit 0
+                            fi
+                            sleep 2
+                        done
+                        echo "Docker daemon did not become ready"
+                        exit 1
+                    '''
+                    sh 'docker build -t host.minikube.internal:4000/pythontest:latest .'
+                    sh 'docker push host.minikube.internal:4000/pythontest:latest'
                 }
             }
         }
