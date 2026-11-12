@@ -95,12 +95,14 @@ spec:
                         SERVER="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}"
 
                         /tmp/kubectl \
+                          --namespace=default \
                           --server="$SERVER" \
                           --certificate-authority="$CA" \
                           --token="$TOKEN" \
                           apply -f kubernetes/deployment.yaml
 
                         /tmp/kubectl \
+                          --namespace=default \
                           --server="$SERVER" \
                           --certificate-authority="$CA" \
                           --token="$TOKEN" \
